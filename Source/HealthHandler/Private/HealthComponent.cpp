@@ -52,77 +52,68 @@ void UHealthComponent::BeginPlay()
 
 void UHealthComponent::OnDeath(float LastHitDamage)
 {
-	UE_LOG(LogTemp, Warning, TEXT("HC_Plug: The Ownwer is Death"));
-
+	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin: The Ownwer is Death"));
 	OnDeathEvent.Broadcast(LastHitDamage);
 }
 
 void UHealthComponent::OnWound(bool bWound, float Damage)
 {
-	UE_LOG(LogTemp, Warning, TEXT("HC_Plug:The Ownwer is Wound"));
-	DamageReceived = Damage;
+	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin:The Ownwer is Wound"));
+	bIsWounded = true;
 	OnWoundEvent.Broadcast(bWound, Damage);
 }
 
 void UHealthComponent::OnArmor(float newAromourValue)
 {
-	onArmourChanged.Broadcast(newAromourValue);
+	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin: The Ownwer is breaking the armor"));
+	onArmorChanged.Broadcast(newAromourValue);
 }
 
-void UHealthComponent::OnRecovery()
-{
-	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin: The Ownwer is in Recovery"));
-
-	GetWorld()->GetTimerManager().ClearTimer(T_RecoveryFromWound);
-
-	
-	
-	RegenPerSec();
-	OnRecoveryEvent.Broadcast();
+void UHealthComponent::OnHealing(float HealAmount)
+{	
+	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin: The Ownwer is healing"));
 	bIsWounded = false;
-	
-
+	OnHealingEvent.Broadcast(HealAmount);
 }
 
 
-void UHealthComponent::RegenPerSec()
+void UHealthComponent::AutoHealthRegen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("HealtComp Plugin: The Ownwer is in HealthEffect"));
+	
+	GetWorld()->GetTimerManager().ClearTimer(T_AutoHeal);
 
-	if ( Health >= MaxHealth ||  Health <= 0.f ) {
-		GetWorld()->GetTimerManager().ClearTimer(T_HealthRegen);
+	if (Health >= MaxHealth || CalculeIsDead())
+	{
+		
 		return;
 	}
 	
-	if(!HealthRegen_HasDuration)
-	{
-		Heal(MaxHealth);
-	}
-
-	Heal(AmtHealthEffect * 10);
-
-	
-	GetWorld()->GetTimerManager().SetTimer(T_HealthRegen, this, 
-		&UHealthComponent::RegenPerSec,
-		TimeHealthRegen, 
-		true);
+	GetWorld()->GetTimerManager().SetTimer(T_AutoHeal, FTimerDelegate::CreateLambda(
+		[this] () {
+			Heal(HealthRegenAmount);
+			if(Health >= MaxHealth || bIsWounded){ 
+				GetWorld()->GetTimerManager().ClearTimer(T_AutoHeal); 
+			}			
+		}
+	), HealthRegenPeriod, true);	
 	
 }
 
-void UHealthComponent::DamagePerSec() {
-
-	AmtHealthEffect *= -1;
-	RegenPerSec();
-
+void UHealthComponent::SetupAutoHealthRegen(float RegenPeriod, float HealAmount)
+{
+	HealthRegenPeriod = RegenPeriod;
+	HealthRegenAmount = HealAmount;
 }
+
 void UHealthComponent::HandledTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
 {
 
-	if (Damage < 0.f || bIsDead)
+	if (Damage < 0.f || CalculeIsDead())
 	{
 		return;
 	}
-
+	 
 	float DMG= Damage;
 
 	if( Armor > 0  ) 
@@ -138,38 +129,32 @@ void UHealthComponent::HandledTakeAnyDamage(AActor* DamagedActor, float Damage, 
 		OnArmor(Armor);
 	}
 
+	GetWorld()->GetTimerManager().ClearTimer(T_AutoHeal);
 	UpdateHealth(Health - DMG);
-
-	if (Health <= 0)
-	{
-		bIsDead = true;
-		OnDeath(Damage);
-		return;
-	}
-		
-	bIsWounded = true;
-	
 	
 	UE_LOG(LogTemp, Warning, TEXT("The Character is Still Wounded? %s"), (bIsWounded ? TEXT("true") : TEXT("false")));
-
-	OnWound(bIsWounded, Damage);
+	
+	
+	OnWound(true, Damage);
 	OnHealthChanged.Broadcast(this, Health,
 		Damage,
 		DamageType, InstigatedBy, DamageCauser);// nullptr, nullptr, nullptr);
 	
-
-	if (TimeToRecovery <= 0.f)
+	if (CalculeIsDead())
 	{
-		OnRecoveryEvent.Broadcast();
-		OnRecovery();		
+		OnDeath(Damage);
 		return;
 	}
-	else 
-	{		
-		GetWorld()->GetTimerManager().SetTimer(T_RecoveryFromWound, this,
-			&UHealthComponent::OnRecovery, TimeToRecovery, false);
-	}
-	
+	if (!HasAutoHealthRegen) return;
+
+
+	FTimerHandle T_DelayAutoHeal;
+	GetWorld()->GetTimerManager().ClearTimer(T_DelayAutoHeal);
+	GetWorld()->GetTimerManager().SetTimer(T_DelayAutoHeal, FTimerDelegate::CreateLambda(
+		[this]() {
+			AutoHealthRegen();
+		}
+	),DealyToAutoHealthRegen, false);
 	
 
 }
@@ -177,7 +162,7 @@ void UHealthComponent::HandledTakeAnyDamage(AActor* DamagedActor, float Damage, 
 
 void UHealthComponent::Heal(float DeltaHeal)
 {
-	if (DeltaHeal < 0.f || bIsDead)
+	if (DeltaHeal < 0.f || CalculeIsDead())
 	{
 		return;
 	}
@@ -185,7 +170,7 @@ void UHealthComponent::Heal(float DeltaHeal)
 	UpdateHealth(Health + DeltaHeal);
 
 	OnHealthChanged.Broadcast(this, Health, DeltaHeal, nullptr, nullptr, nullptr);
-
+	OnHealing(DeltaHeal);
 }
 
 
@@ -203,12 +188,9 @@ void UHealthComponent::FixArmor(float DeltaArmor)
 }
 
 
-
-
 void UHealthComponent::OnRep_Health(float OldHealth)
 {
 	float DeltaHealth = Health - OldHealth;
-
 	
 	OnHealthChanged.Broadcast(this, Health, DeltaHealth, nullptr, nullptr, nullptr);
 
@@ -221,51 +203,54 @@ void UHealthComponent::OnRep_Armor()
 {	
 	if(Armor<=0) return;
 	OnArmor(Armor);
-	
-	
 }
 
 
 
 void UHealthComponent::UpdateHealth(float DeltaHealth)
 {
+	if(GetOwner()->GetLocalRole()==ROLE_Authority)
+	{
+		Health = FMath::Clamp(DeltaHealth, 0.f, MaxHealth);
+		CalculeIsDead();
+		UE_LOG(LogTemp, Warning, TEXT("Health changed: %f"), Health);
+	}
 	
-	Health = FMath::Clamp(DeltaHealth, 0.f, MaxHealth);
-
-	UE_LOG(LogTemp, Warning, TEXT("Health changed: %f"), Health);
 }
 
 void UHealthComponent::UpdateArmor(float DeltaArmor)
 {
-	Armor = FMath::Clamp(DeltaArmor, 0.f, MaxArmor);
+	if (GetOwner()->GetLocalRole() == ROLE_Authority)
+	{
+		Armor = FMath::Clamp(DeltaArmor, 0.f, MaxArmor);
 
-	UE_LOG(LogTemp, Warning, TEXT("Armor changed: %f"), Armor);
+		UE_LOG(LogTemp, Warning, TEXT("Armor changed: %f"), Armor);
+	}
+	
 }
 
 void UHealthComponent::UpdateMaxHealth(float DeltaHealth)
 {
+	if (GetOwner()->GetLocalRole() == ROLE_Authority) {
+		MaxHealth = FMath::Clamp(DeltaHealth, 0.f, DefaultMaxValueStat);
+
+		UE_LOG(LogTemp, Warning, TEXT("MaxHealth changed: %f"), MaxHealth);
+	}
+
+}
+
+void UHealthComponent::UpdateMaxArmor(float DeltaArmor)
+{
+	if (GetOwner()->GetLocalRole() == ROLE_Authority) {
+		MaxArmor = FMath::Clamp(DeltaArmor, 0.f, DefaultMaxValueStat);
+
+		UE_LOG(LogTemp, Warning, TEXT("MaxArmor changed: %f"), MaxArmor);
+	}
 	
-	MaxHealth = FMath::Clamp(DeltaHealth, 0.f, DefaultMaxValueStat);
-
-	UE_LOG(LogTemp, Warning, TEXT("MaxHealth changed: %f"), MaxHealth);
 }
 
-void UHealthComponent::UpdateMaxArmot(float DeltaArmor)
-{
-	MaxArmor = FMath::Clamp(DeltaArmor, 0.f, DefaultMaxValueStat);
 
-	UE_LOG(LogTemp, Warning, TEXT("MaxArmor changed: %f"), MaxArmor);
-}
 
-float UHealthComponent::GetHealthBarPercent() const
-{
-	return (Health / MaxHealth);
-}
-
-float UHealthComponent::GetArmorBarPercent() const
-{
-	return (Armor/MaxArmor);
-}
 
 
 /** Setting replicated variables*/
@@ -280,8 +265,9 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UHealthComponent, MaxArmor);	
 	DOREPLIFETIME(UHealthComponent, bIsDead);
 	DOREPLIFETIME(UHealthComponent, bIsWounded);
-	DOREPLIFETIME_CONDITION(UHealthComponent, DamageReceived, COND_OwnerOnly);
+	
+	
+
+
 }
-
-
 

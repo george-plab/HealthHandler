@@ -15,9 +15,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDeathEventDispatcher, float, LastHi
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWoundEventDispatcher,bool, bIsWounded, float, DamageReceived);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FArmourChangedEventDispatcher, float, newArmor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FArmorChangedEventDispatcher, float, newArmor);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRecoveryEventDispatcher);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealingEventDispatcher, float , HealAmount);
 //
 //
 
@@ -34,60 +34,73 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	/** update the current health, this node is server only. */
-	void UpdateHealth(float DeltaHealth);
-
-	void UpdateArmor(float DeltaArmor);
-
-	/** update the Max health, this node is server only. */
-	void UpdateMaxHealth(float DeltaHealth);
-
-	void UpdateMaxArmot(float DeltaArmor);
 
 public:
 
-	/** This Event is Fired when Owner  of Health component Death */
+
+	/** This Event is Fired when Owner reduce health to zero and dies */
 	UPROPERTY(BlueprintAssignable,  Category = "Health Component | Events")
 	FDeathEventDispatcher OnDeathEvent;
 
+	/** Fire Death Event */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
 	virtual void OnDeath(float LastHitDamage);
 
-	/** This Event is Fired when Owner (normally a pawn)  of Health component Death */
+	/** This Event is Fired when Owner (normally a pawn) 
+	take damages of any "apply damage" interface */
 	UPROPERTY(BlueprintAssignable,  Category = "Health Component | Events")
 	FWoundEventDispatcher OnWoundEvent;
 
-
+	/** Fire Wound Event */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
 	virtual void OnWound(bool bWound, float Damage);
 
-	FArmourChangedEventDispatcher onArmourChanged;
-	
-	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	virtual void OnArmor( float newAromourValue);
-
-	/** This Event is Fired when Owner  of Health component Recovery from a wound before timetorevery seconds */
+	/** This Event is Fired when Owner (normally a pawn)  
+	take damages of any "apply damage" interface and armor is damaged */
 	UPROPERTY(BlueprintAssignable, Category = "Health Component | Events")
-	FRecoveryEventDispatcher OnRecoveryEvent;
-
-	/** Start health regeneration, Resets bIsWounded  */
+	FArmorChangedEventDispatcher onArmorChanged;
+	
+	/** Fire Armor Event */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	virtual void OnRecovery();
+	virtual void OnArmor(float newAromourValue);
 
+	/** This Event is Fired when Owner Get healed from any source */
+	UPROPERTY(BlueprintAssignable, Category = "Health Component | Events")
+	FHealingEventDispatcher OnHealingEvent;
+
+	/** Fire Healing Event */
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	virtual void OnHealing(float HealAmount);
+
+	/** This Event is Fired when Owner (normally a pawn)
+	take damages of any "apply damage" interface, or  heal or healtregen execute   */
 	UPROPERTY(BlueprintAssignable, Category = "Health Component | Events")
 	FOnHealthChangedEventDispatcher OnHealthChanged;
 
+	
 	UFUNCTION()
 	void HandledTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
+	
+	/** update the current health, this node is server only. */
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	void UpdateHealth(float DeltaHealth);
 
+
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	void UpdateArmor(float DeltaArmor);
+
+	/** update the Max health, this node is server only. */
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	void UpdateMaxHealth(float DeltaHealth);
+
+	/** update the Max Armor, this node is server only. */
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	void UpdateMaxArmor(float DeltaArmor);
 
 	/**Heal to Owner. Add DeltaHeal to Heath*/
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	void Heal(float DeltaHeal);
-	
-	
-	
+	void Heal(float DeltaHeal);	
 
 	/**Fix to ArmorOwner. Add DeltaArmor to Armor*/
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
@@ -95,12 +108,11 @@ public:
 
 	/** To apply Mods to Health Regen, Heal by potions or Damage for Fire Efects */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	void RegenPerSec();
-	
-	/**Heal to Owner. Add DeltaHeal to Heath*/
+	void AutoHealthRegen();
+
+	/** Custom your HealthRegenPeriod  and HealthRegenAmount Use this before call AutohealthRegen or any "Apply damage" interface */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	void DamagePerSec();
-	
+	void SetupAutoHealthRegen(float RegenPeriod, float HealAmount);
 
 	/** Called in every client from Server Every time Healt change in Server */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
@@ -111,10 +123,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
 	void OnRep_Armor();
 
+protected:
+	
+	FTimerHandle T_AutoHeal;
+
 public:	
-	// Called every frame
-	
-	
+		
 
 	/** Current Health */
 	UPROPERTY(ReplicatedUsing = "OnRep_Health", BlueprintReadWrite, EditAnywhere, Category = "Health Component")
@@ -135,74 +149,66 @@ public:
 		MaxHealh <= DefaultMaxValueStat  or MaxArmor <= DefaultMaxValueStat  */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Health Component")
 		float DefaultMaxValueStat = 500.f;
-	
-
 	/** is True when current health is zero */
-	UPROPERTY(Replicated, BlueprintReadOnly, EditDefaultsOnly, Category = "Health Component" )
-		bool bIsDead;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Health Component" )
+		bool bIsDead=false;
 
 	/**Is true whenever the owner receives damage , 
 	You can use this for a stunned or Woinded state	*/
-	UPROPERTY( Replicated,BlueprintReadOnly, EditDefaultsOnly, Category = "Health Component")
-	bool bIsWounded;
-
-
-	
-
-
-	
-	
-	/** The amount of damage received, before recovery,
-	You can use this to setup a threshold for stunned if bIsWounde=true*/
-	UPROPERTY(Replicated, BlueprintReadOnly, VisibleAnywhere, Category = "Health Component")
-	float DamageReceived = 0.f;
-
-	FTimerHandle T_RecoveryFromWound;
-	
-	/*Time To reset bisWound and start health regeneration (onRecovery())
-	if TimeToRecovery=0.f bIsWounded=false always and onRecovery execute immediately */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true"))
-	float TimeToRecovery = 1.2f;
+	UPROPERTY( Replicated,BlueprintReadOnly, Category = "Health Component")
+		bool bIsWounded;
 	
 	/**if false, After Recovery Health regenerates instantly, if true health needs a Time To Regenerate */
 	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true"))
-	bool HealthRegen_HasDuration = false;
+	bool HasAutoHealthRegen = false;
 
-	FTimerHandle T_HealthRegen;
+	/*Time To reset bisWound and start health regeneration
+	if TimeToRecovery=0.f bIsWounded=false always and onRecovery execute immediately */
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true",  EditCondition = "HasAutoHeathRegen"))
+	float DealyToAutoHealthRegen = 1.2f;	
 	
-	/*Every "Time Health Regen" apply amtHealth Regen
-	*/
-	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true", EditCondition = "HealthRegen_HasDuration"))
-	float TimeHealthRegen = 0.01f;
+	/*Every "Time Health Regen" seconds apply Heal( amtHealth )  until Health == MaxHealth  */
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true", EditCondition = "HasAutoHeathRegen"))
+	float HealthRegenPeriod = 0.05f;
 
-	UPROPERTY( BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true", EditCondition = "HealthRegen_HasDuration"))
-	float AmtHealthEffect = 0.01f;
+	/** Amount of Health added every TimeHealthRegen */
+	UPROPERTY(Replicated, BlueprintReadWrite, EditAnywhere, Category = "Health Component", meta = (ExposeOnSpawn = "true", EditCondition = "HasAutoHeathRegen"))
+	float HealthRegenAmount = 1.f;
 	
 
 	/** Get the max value health */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
-	FORCEINLINE float GetMaxHealth()const { return MaxHealth; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 
 	/** Get the max value health */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
 	FORCEINLINE float GetMaxArmor()const { return MaxArmor; }
 
-	/** Get the health Percent for display in widget : Health / MaxHealth */
+	/** Get the current health  */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
 	FORCEINLINE float GetHealth() const { return Health; }
 
-	/** Get the health Percent for display in widget : Health / MaxHealth */
+	/** Get the Current Armor */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
 	FORCEINLINE float GetArmor() const { return Armor; }
 	
+	
+	/** Calcule if player is Dead*/
+	UFUNCTION(BlueprintPure, Category = "Health Component")
+	FORCEINLINE bool CalculeIsDead() { return bIsDead = (Health <= 0) ? true : false; }
+	
+	/**Calcule if player has Armor*/
+	UFUNCTION(BlueprintPure, Category = "Health Component")
+	FORCEINLINE bool CalculeHasArmor() const { return (Armor > 0) ? true : false; }
+
 	/** Get the health Percent for display in widget : Health / MaxHealth */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
-	float GetHealthBarPercent() const;
+	FORCEINLINE float GetHealthBarPercent() const { return (Health / MaxHealth); };
 
 	
 	/** Get the health Percent for display in widget : Health / MaxHealth */
 	UFUNCTION(BlueprintPure, Category = "Health Component")
-	float GetArmorBarPercent() const;
+	FORCEINLINE float GetArmorBarPercent() const { return (Armor / MaxArmor); };
 
 	
 	
