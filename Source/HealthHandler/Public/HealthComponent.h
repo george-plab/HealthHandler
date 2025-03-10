@@ -97,14 +97,14 @@ public:
 	/** update the Max Armor, this node is server only. */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
 	void UpdateMaxArmor(float DeltaArmor);
-
-	/**Heal to Owner. Add DeltaHeal to Heath*/
-	UFUNCTION(BlueprintCallable, Category = "Health Component")
-	void Heal(float DeltaHeal);	
-
 	/**Fix to ArmorOwner. Add DeltaArmor to Armor*/
+	
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
 	void FixArmor(float DeltaArmor);
+	/**Heal to Owner. Add DeltaHeal to Heath*/
+	
+	UFUNCTION(BlueprintCallable, Category = "Health Component")
+	void Heal(float DeltaHeal);		
 
 	/** To apply Mods to Health Regen, Heal by potions or Damage for Fire Efects */
 	UFUNCTION(BlueprintCallable, Category = "Health Component")
