@@ -1,5 +1,5 @@
-# Project Title
-Health Component Replicated plugin
+# Health Component Replicated plugin
+
 
 ![Alt Text - How To setup](/DOC/Slide1_title.JPG)
 
