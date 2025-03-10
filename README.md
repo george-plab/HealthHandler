@@ -1,7 +1,7 @@
 # Project Title
 Health Component Replicated plugin
 
-![Alt Text - How To setup](/DOC/Slide1_title.JPG)
+![Alt Text - How To setup](/Doc/Slide1_title.JPG)
 
 # Features
 This component updates health and it calculates if the player is dead, each me the player 
@@ -54,23 +54,23 @@ If you need any custom feature please let me know in my discord server:
         - |-- HealthHandler.uplugin  (descriptor )
 ## Usage
 ### Features 
-![Features 2](/DOC/Slide2_Features.JPG)
-![Features 3](/DOC/Slide3_Features.JPG)
+![Features 2](/Doc/Slide2_Features.JPG)
+![Features 3](/Doc/Slide3_Features.JPG)
 ### Setup
-![How To setup](/DOC/Slide4_Setup.JPG)
+![How To setup](/Doc/Slide4_Setup.JPG)
 
-![Event and Functions](/DOC/Slide5_EventFunc.JPG)
+![Event and Functions](/Doc/Slide5_EventFunc.JPG)
 
-![UI](/DOC/Slide6_UI.JPG)
+![UI](/Doc/Slide6_UI.JPG)
 
-![Deathevent](/DOC/Slide7_Deathevent.JPG)
+![Deathevent](/Doc/Slide7_Deathevent.JPG)
 
 
 ### Demo
 
-![Demo Description](/DOC/Slide8_Demo.JPG)
-![Pickups](/DOC/Slide9_Pickups.JPG)
-![Damage Zone](/DOC/Slide10_DPS.JPG)
+![Demo Description](/Doc/Slide8_Demo.JPG)
+![Pickups](/Doc/Slide9_Pickups.JPG)
+![Damage Zone](/Doc/Slide10_DPS.JPG)
 
 please if you see any issue please let me know about in DM on my discord chanel
 You can contact me  in my discord server [VicAgent Discord issues channel](https://discord.gg/TGQzgzC6) 
