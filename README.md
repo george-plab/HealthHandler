@@ -81,11 +81,11 @@ If you need any custom feature please let me know in my discord server:
     - onHealing: This event fires whenever the owner heals from any source. Useful for RPC Effects Multicast.
 5. 
 
-![Event and Functions](/Doc/Slide5_EventFunc.jpg)
+![Event and Functions](/Doc/Slide5_EventFunc.JPG)
 
 ### Features 
-![Features 2](/Doc/Slide2_Features.jpg)
-![Features 3](/Doc/Slide3_Features.jpg)
+![Features 2](/Doc/Slide2_Features.JPG)
+![Features 3](/Doc/Slide3_Features.JPG)
 ### Setup
 In your Actor (or PAwn or Character),  component section search Health...Add Health component (Named Health).
 You can setup in detail panels at healthcomponent category the next properties:
@@ -101,20 +101,20 @@ You can setup in detail panels at healthcomponent category the next properties:
 9. Health Regen Amount: every period health regen apply this heal amount until Health>=HealthMax
 
 
-![How To setup](/Doc/Slide4_Setup.jpg)
+![How To setup](/Doc/Slide4_Setup.JPG)
 
 
 
-![UI](/Doc/Slide6_UI.jpg)
+![UI](/Doc/Slide6_UI.JPG)
 
-![Deathevent](/Doc/Slide7_Deathevent.jpg)
+![Deathevent](/Doc/Slide7_Deathevent.JPG)
 
 
 ### Demo
 
-![Demo Description](/Doc/Slide8_Demo.jpg)
-![Pickups](/Doc/Slide9_Pickups.jpg)
-![Damage Zone](/Doc/Slide10_DPS.jpg)
+![Demo Description](/Doc/Slide8_Demo.JPG)
+![Pickups](/Doc/Slide9_Pickups.JPG)
+![Damage Zone](/Doc/Slide10_DPS.JPG)
 
 please if you see any issue please let me know about in DM on my discord chanel
 You can contact me  in my discord server [VicAgent Discord issues channel](https://discord.gg/TGQzgzC6) 
