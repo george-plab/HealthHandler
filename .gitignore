@@ -84,3 +84,5 @@ Content/StarterContent/*/**
 
 !Content/StarterContent/Shapes/Shape_Cube
 !Content/StarterContent/Particles/P_Explosion
+
+DOC/*.png
