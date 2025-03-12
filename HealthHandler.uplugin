@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "HealthHandler",
+	"Description": "A Plugin to add A Health Component: this component updates health and it calculates if the player is dead, and is Ready Multiplayer",
+	"Category": "Plugin",
+	"CreatedBy": "VicAgent S.L.",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/Fab/product/3af47d87-b6d0-4a3b-ae0f-d3fcaae9b019",
+	"SupportURL": "https://discord.gg/uXdyN2Jq",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"EngineVersion": "5.5.0",
+	"Modules": [
+		{
+			"Name": "HealthHandler",
+			"Type": "runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		}
+	]
+}
