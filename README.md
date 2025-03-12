@@ -1,7 +1,7 @@
-# Health Component Replicated plugin
+# Health Component Replicated plugin version para unreal engine 5.5
 
 
-![Alt Text - How To setup](/Doc/Slide1_title.jpg)
+![Alt Text - How To setup](/Doc/Slide1_title.JPG)
 
 # Features
 This component updates health and it calculates if the player is dead, each me the player 
